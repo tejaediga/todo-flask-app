@@ -18,4 +18,13 @@ A simple and clean task management web app built using **Python Flask** and **SQ
 - **Database:** SQLite
 
 ## Project Structure
+TO-DO-LIST/
+├── app.py              # Main Flask app
+├── init_db.py          # Database initializer
+├── todo.db             # SQLite database (ignored in .gitignore)
+├── requirements.txt    # Project dependencies
+├── templates/
+    ├── index.html
+    └── edit.html
+
 

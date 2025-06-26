@@ -1,6 +1,12 @@
 from flask import Flask, render_template, request, redirect, url_for
 import sqlite3
 from datetime import datetime, date
+import os
+from init_db import init_db
+
+# Create the DB if it doesn't exist (for fresh deployment)
+if not os.path.exists("todo.db"):
+    init_db()
 
 app = Flask(__name__)
 

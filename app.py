@@ -10,7 +10,7 @@ def home():
     conn = sqlite3.connect("todo.db")
     cursor = conn.cursor()
 
-    # ✅ Create table if it doesn't exist
+    # Create table if it doesn't exist
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS tasks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -50,6 +50,7 @@ def home():
     conn.close()
 
     return render_template("index.html", tasks=tasks,
+                           current_date=date.today().strftime('%A, %d %B %Y'),
                            selected_category=category_filter,
                            selected_filter=status_filter,
                            categories=categories,
@@ -103,6 +104,20 @@ def edit(task_id):
         task = cursor.fetchone()
         conn.close()
         return render_template("edit.html", task=task)
+@app.route('/update/<int:task_id>', methods=['POST'])
+def update_task(task_id):
+    updated_content = request.form['updated_content']
+    updated_category = request.form['updated_category']
+    today = date.today().isoformat()
+    
+    conn = sqlite3.connect('todo.db')
+    cursor = conn.cursor()
+    cursor.execute("UPDATE tasks SET content = ?, category = ?, date_updated = ? WHERE id = ?", 
+                   (updated_content, updated_category, today, task_id))
+    conn.commit()
+    conn.close()
+    
+    return redirect(url_for('home'))
 
 if __name__ == "__main__":
     app.run(debug=True)

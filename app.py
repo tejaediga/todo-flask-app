@@ -1,16 +1,17 @@
-from flask import Flask, render_template, request, redirect
+from flask import Flask, render_template, request, redirect, url_for
 import sqlite3
 import os
-from datetime import date
+from datetime import datetime, date  # ✅ Fix: imported both datetime and date
 
 app = Flask(__name__)
 
+# ----------------------- Home Route -----------------------
 @app.route("/")
 def home():
     conn = sqlite3.connect("todo.db")
     cursor = conn.cursor()
 
-    # Create table if it doesn't exist
+    # ✅ Create table if it doesn't exist
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS tasks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -23,6 +24,8 @@ def home():
     conn.commit()
 
     today = date.today().isoformat()
+
+    # ✅ Daily reset logic
     cursor.execute("UPDATE tasks SET completed = 0 WHERE date_updated < ?", (today,))
     conn.commit()
 
@@ -49,13 +52,15 @@ def home():
 
     conn.close()
 
-    return render_template("index.html", tasks=tasks,
+    return render_template("index.html",
+                           tasks=tasks,
                            current_date=date.today().strftime('%A, %d %B %Y'),
                            selected_category=category_filter,
                            selected_filter=status_filter,
                            categories=categories,
-                           today=date.today())
+                           today=today)
 
+# ----------------------- Add Task -----------------------
 @app.route("/add", methods=["POST"])
 def add():
     content = request.form["task"]
@@ -68,6 +73,7 @@ def add():
     conn.close()
     return redirect("/")
 
+# ----------------------- Mark Complete/Incomplete -----------------------
 @app.route("/complete/<int:task_id>")
 def complete(task_id):
     conn = sqlite3.connect("todo.db")
@@ -78,6 +84,7 @@ def complete(task_id):
     conn.close()
     return redirect("/")
 
+# ----------------------- Delete Task -----------------------
 @app.route("/delete/<int:task_id>")
 def delete(task_id):
     conn = sqlite3.connect("todo.db")
@@ -87,37 +94,28 @@ def delete(task_id):
     conn.close()
     return redirect("/")
 
+# ----------------------- Edit Task -----------------------
 @app.route("/edit/<int:task_id>", methods=["GET", "POST"])
 def edit(task_id):
     conn = sqlite3.connect("todo.db")
     cursor = conn.cursor()
+
     if request.method == "POST":
-        content = request.form["task"]
+        content = request.form["content"]
         category = request.form.get("category", "General")
-        cursor.execute("UPDATE tasks SET content = ?, category = ?, date_updated = ? WHERE id = ?",
-                       (content, category, date.today().isoformat(), task_id))
+        completed = 1 if request.form.get("completed") == "on" else 0
+        date_updated = datetime.now().date()
+        cursor.execute("UPDATE tasks SET content = ?, category = ?, completed = ?, date_updated = ? WHERE id = ?",
+                       (content, category, completed, date_updated, task_id))
         conn.commit()
         conn.close()
         return redirect("/")
-    else:
-        cursor.execute("SELECT id, content, category FROM tasks WHERE id = ?", (task_id,))
-        task = cursor.fetchone()
-        conn.close()
-        return render_template("edit.html", task=task)
-@app.route('/update/<int:task_id>', methods=['POST'])
-def update_task(task_id):
-    updated_content = request.form['updated_content']
-    updated_category = request.form['updated_category']
-    today = date.today().isoformat()
-    
-    conn = sqlite3.connect('todo.db')
-    cursor = conn.cursor()
-    cursor.execute("UPDATE tasks SET content = ?, category = ?, date_updated = ? WHERE id = ?", 
-                   (updated_content, updated_category, today, task_id))
-    conn.commit()
-    conn.close()
-    
-    return redirect(url_for('home'))
 
+    cursor.execute("SELECT * FROM tasks WHERE id = ?", (task_id,))
+    task = cursor.fetchone()
+    conn.close()
+    return render_template("edit.html", task=task)
+
+# ----------------------- Run App -----------------------
 if __name__ == "__main__":
     app.run(debug=True)

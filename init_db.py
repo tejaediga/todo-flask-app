@@ -1,4 +1,4 @@
-# init_db.py
+ # init_db.py
 import sqlite3
 
 conn = sqlite3.connect("todo.db")
